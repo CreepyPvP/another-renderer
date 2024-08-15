@@ -23,28 +23,26 @@ void log_ex(LogLevel log_level, const char *text, ...)
     fflush(stdout);
 }
 
-void _assert(const char *file, u32 line, const char *expression, bool value)
+u8 *read_file(const char *path, u32 *bytes_read)
 {
-    if (!value)
-    {
-        error("Assert (%s:%u) failed: %s", file, line, expression);
-        exit(1);
-    }
-}
-
-u32 read_file(const char *path, u8 *buffer, u32 buffer_size)
-{
-    u32 bytes_read = 0;
+    *bytes_read = 0;
     FILE *file = {};
     if (fopen_s(&file, path, "rb") == 0) 
     {
-        bytes_read = fread(buffer, 1, buffer_size, file);
+        fseek(file, 0, SEEK_END);
+        *bytes_read = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        u8 *buffer = (u8 *) malloc(*bytes_read);
+        fread(buffer, 1, *bytes_read, file);
         fclose(file);
+
+        return buffer;
     } 
     else 
     {
         error("Failed to read file %s", path);
     }
 
-    return bytes_read;
+    return NULL;
 }

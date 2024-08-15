@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <assert.h>
 
 #define DEBUG
 
@@ -20,10 +21,6 @@ typedef double f64;
 
 #define advance_pointer(pointer, size) (((u8 *) pointer) + size)
 
-#define assert(expr) _assert(__FILE__, __LINE__, #expr, expr)
-
-void _assert(const char *file, u32 line, const char *expression, bool value);
-
 enum LogLevel
 {
     Log_Debug,
@@ -40,7 +37,7 @@ enum LogLevel
 
 void log_ex(LogLevel log_level, const char *text, ...);
 
-u32 read_file(const char *path, u8 *buffer, u32 buffer_size);
+u8* read_file(const char* path, u32* bytes_read);
 
 // asset loading ----------------------------------
 
