@@ -39,3 +39,9 @@ enum LogLevel
 #define error(text, ...) log_ex(Log_Error, text, __VA_ARGS__)
 
 void log_ex(LogLevel log_level, const char *text, ...);
+
+u32 read_file(const char *path, u8 *buffer, u32 buffer_size);
+
+// asset loading ----------------------------------
+
+void parse_obj(const char *path);

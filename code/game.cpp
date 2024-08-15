@@ -31,3 +31,20 @@ void _assert(const char *file, u32 line, const char *expression, bool value)
         exit(1);
     }
 }
+
+u32 read_file(const char *path, u8 *buffer, u32 buffer_size)
+{
+    u32 bytes_read = 0;
+    FILE *file = {};
+    if (fopen_s(&file, path, "rb") == 0) 
+    {
+        bytes_read = fread(buffer, 1, buffer_size, file);
+        fclose(file);
+    } 
+    else 
+    {
+        error("Failed to read file %s", path);
+    }
+
+    return bytes_read;
+}

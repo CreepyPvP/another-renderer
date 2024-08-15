@@ -32,7 +32,7 @@ void create_window()
     GLFWmonitor *monitor = NULL;
     if (fullscreen)
     {
-        GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+        monitor = glfwGetPrimaryMonitor();
     }
 
     window = glfwCreateWindow(window_width, window_height, "Game", monitor, NULL);
@@ -50,6 +50,8 @@ i32 main()
     create_window();
 
     initialize_backend();
+
+    parse_obj("assets/bunny.obj");
 
     while (!glfwWindowShouldClose(window))
     {
