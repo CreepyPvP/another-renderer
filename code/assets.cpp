@@ -5,6 +5,7 @@
 
 void filereader_callback(void *ctx, const char *filename, i32 is_mtl, const char *obj_filename, char **buffer, size_t *length)
 {
+    *length = 0;
     *buffer = (char *) read_file(filename, (u32 *) length);
 }
 

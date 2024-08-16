@@ -10,6 +10,16 @@ struct Color
     f32 a;
 };
 
+struct Mesh
+{
+};
+
+struct Model
+{
+    u32 mesh_count;
+    Mesh *meshes;
+};
+
 struct CommandBuffer
 {
     u32 write;

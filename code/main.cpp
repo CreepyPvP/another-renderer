@@ -47,6 +47,9 @@ void create_window()
 
 i32 main()
 {
+    assert(sizeof(size_t) >= sizeof(u32));
+    assert(sizeof(char) == sizeof(u8));
+
     create_window();
 
     initialize_backend();
