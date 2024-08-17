@@ -54,7 +54,8 @@ i32 main()
 
     initialize_backend();
 
-    parse_obj("assets/bunny.obj");
+    CommandBuffer commands;
+    Model bunny = parse_obj("assets/bunny.obj");
 
     while (!glfwWindowShouldClose(window))
     {
@@ -63,10 +64,12 @@ i32 main()
             glfwSetWindowShouldClose(window, true);
         }
 
-        CommandBuffer commands = {};
-        set_active_commands(&commands);
+        command_buffer(&commands);
 
-        push_clear_command({0.1, 0.1, 0.2, 1.0});
+        commands.group->proj = mat4(1);
+
+        push_clear({0.1, 0.1, 0.2, 1.0});
+        push_draw_model(bunny);
 
         execute_commands(&commands, window_width, window_height);
 

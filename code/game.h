@@ -38,7 +38,3 @@ enum LogLevel
 void log_ex(LogLevel log_level, const char *text, ...);
 
 u8* read_file(const char* path, u32* bytes_read);
-
-// asset loading ----------------------------------
-
-void parse_obj(const char *path);

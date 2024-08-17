@@ -1,6 +1,7 @@
 #pragma once
 
 #include "game.h"
+#include "game_math.h"
 
 struct Color
 {
@@ -10,28 +11,39 @@ struct Color
     f32 a;
 };
 
-struct Mesh
+struct Vertex
 {
+    V3 position;
+    V3 normal;
+    V3 color;
+    V2 uv;
 };
 
 struct Model
 {
-    u32 mesh_count;
-    Mesh *meshes;
+    u32 id;
+    u32 vertex_count;
+};
+
+struct RenderGroup
+{
+    Mat4 proj;
 };
 
 struct CommandBuffer
 {
     u32 write;
     u8 memory[KiloBytes(32)];
+
+    u32 render_group_count;
+    RenderGroup group[10];
 }; 
 
 enum CommandType
 {
     Command_Clear,
+    Command_DrawModel,
 };
-
-void set_active_commands(CommandBuffer *commands);
 
 struct ClearCommand
 {
@@ -39,11 +51,26 @@ struct ClearCommand
     Color color;
 };
 
-void push_clear_command(Color color);
+struct DrawModelCommand
+{
+    CommandType type;
+    Model model;
+    u32 group;
+};
+
+void command_buffer(CommandBuffer *commands);
+
+RenderGroup *push_render_group();
+
+void push_clear(Color color);
+void push_draw_model(Model model, u32 group = 0);
 
 // Backend...
 
 void initialize_backend();
-
 void execute_commands(CommandBuffer *commands, u32 width, u32 height);
+Model load_model(Vertex *vertex_buffer, u32 vertex_count);
 
+// Asset loading...
+
+Model parse_obj(const char *path);

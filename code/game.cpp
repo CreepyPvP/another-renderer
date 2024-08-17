@@ -13,7 +13,7 @@ const char *log_level_strings[LogLevelCount] = {
 
 void log_ex(LogLevel log_level, const char *text, ...)
 {
-    char fmt_buf[KiloBytes(1)];
+    char fmt_buf[KiloBytes(5)];
     sprintf(fmt_buf, "[%s]: %s\n", log_level_strings[log_level], text);
 
     va_list args;
@@ -25,24 +25,20 @@ void log_ex(LogLevel log_level, const char *text, ...)
 
 u8 *read_file(const char *path, u32 *bytes_read)
 {
-    *bytes_read = 0;
-    FILE *file = {};
-    if (fopen_s(&file, path, "rb") == 0) 
+    FILE *fptr = fopen(path, "rb");
+    if (fptr == NULL) 
     {
-        fseek(file, 0, SEEK_END);
-        *bytes_read = ftell(file);
-        fseek(file, 0, SEEK_SET);
-
-        u8 *buffer = (u8 *) malloc(*bytes_read);
-        fread(buffer, 1, *bytes_read, file);
-        fclose(file);
-
-        return buffer;
-    } 
-    else 
-    {
-        error("Failed to read file %s", path);
+        error("Failed to read file: %s", path);
+        return NULL;
     }
-
-    return NULL;
+    fseek(fptr, 0, SEEK_END);
+    i32 len = ftell(fptr);
+    u8 *buf = (u8*) malloc(len + 1);
+    fseek(fptr, 0, SEEK_SET);
+    fread(buf, len, 1, fptr);
+    buf[len] = 0;
+    if (bytes_read)
+        *bytes_read = len;
+    fclose(fptr);
+    return buf;
 }
