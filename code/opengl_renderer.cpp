@@ -91,9 +91,10 @@ void initialize_backend()
     assert(gladLoadGLLoader((GLADloadproc) glfwGetProcAddress));
 
     glGetIntegerv(GL_MAX_SAMPLES, &OPENGL.max_samples);
-    glFrontFace(GL_CW);
+    glFrontFace(GL_CCW);
 
     glEnable(GL_DEPTH_TEST);
+    // glDisable(GL_CULL_FACE);
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

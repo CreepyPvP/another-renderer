@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include "game.h"
+#include "game_math.h"
 #include "renderer.h"
 
 u32 window_width = 960;
@@ -57,6 +58,9 @@ i32 main()
     CommandBuffer commands;
     Model bunny = parse_obj("assets/bunny.obj");
 
+    Mat4 projection = perspective(45, (f32) window_width / (f32) window_height, 0.01, 1000);
+    Mat4 view = look_at(v3(3, 3, 3), v3(0), v3(0, 1, 0));
+
     while (!glfwWindowShouldClose(window))
     {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
@@ -66,7 +70,7 @@ i32 main()
 
         command_buffer(&commands);
 
-        commands.group->proj = mat4(1);
+        commands.group->proj = projection * view;
 
         push_clear({0.1, 0.1, 0.2, 1.0});
         push_draw_model(bunny);
