@@ -41,6 +41,7 @@ struct Mesh
 struct Model
 {
     u32 id;
+    u32 total_vertices;
 
     u32 mesh_count;
     Mesh *meshes;

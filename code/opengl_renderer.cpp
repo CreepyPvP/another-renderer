@@ -129,6 +129,8 @@ void draw_model(DrawModelCommand *draw, CommandBuffer *commands)
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &commands->group[draw->group].proj);
 
     glBindVertexArray(draw->model.id);
+    // glDrawArrays(GL_TRIANGLES, 0, draw->model.total_vertices);
+    
     for (u32 i = 0; i < draw->model.mesh_count; ++i)
     {
         Mesh *mesh = &draw->model.meshes[i];
@@ -248,6 +250,7 @@ Model load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh
     glBindVertexArray(0);
 
     model.id = vao;
+    model.total_vertices = total_vertices;
     model.mesh_count = mesh_count;
     model.meshes = (Mesh *) malloc(sizeof(Mesh) * mesh_count);
     model.material_count = material_count;
