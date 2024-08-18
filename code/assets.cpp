@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "renderer.h"
 #include "game_math.h"
@@ -17,8 +18,11 @@ void filereader_callback(void *ctx, const char *filename, i32 is_mtl, const char
     *buffer = (char *) read_file(filename, (u32 *) length);
 }
 
-Model parse_obj(const char *path)
+Model parse_obj(const char *dir, const char *file)
 {
+    char path[256];
+    sprintf("%s/%s", dir, file);
+
     obj::tinyobj_attrib_t attrib = {};
 
     obj::tinyobj_shape_t *meshes = NULL;
@@ -28,7 +32,6 @@ Model parse_obj(const char *path)
     size_t material_count = 0;
 
     u32 flags = TINYOBJ_FLAG_TRIANGULATE;
-
     i32 result = obj::tinyobj_parse_obj(&attrib, &meshes, &mesh_count, &materials, &material_count, path, filereader_callback, NULL, flags);
 
     assert(result == TINYOBJ_SUCCESS);
@@ -92,6 +95,7 @@ Model parse_obj(const char *path)
     for (u32 i = 0; i < material_count; ++i)
     {
         Material *material = &model_materials[i];
+        // 'materials[i].diffuse_texname' contains values like "textures/some_texture.png"
         // material->diffuse = load_texture(...)
     }
 

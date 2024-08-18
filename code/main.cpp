@@ -73,7 +73,7 @@ i32 main()
 
     CommandBuffer commands;
     // Model bunny = parse_obj("assets/bunny.obj");
-    Model sponza = parse_obj("assets/sponza/sponza.obj");
+    Model sponza = parse_obj("assets/sponza", "sponza.obj");
 
     init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
 
