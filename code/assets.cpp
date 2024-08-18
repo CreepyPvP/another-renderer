@@ -75,5 +75,25 @@ Model parse_obj(const char *path)
         }
     }
 
-    return load_model(vertex_buffer, triangle_count * 3);
+    Mesh *model_meshes = (Mesh *) malloc(sizeof(Mesh) * mesh_count);
+    Material *model_materials = (Material *) malloc(sizeof(Material) * material_count);
+
+    for (u32 i = 0; i < mesh_count; ++i)
+    {
+        Mesh *mesh = &model_meshes[i];
+        obj::tinyobj_shape_t *shape = &meshes[i];
+        // TODO: If *any* weirednes happens, it might be caused by tinyobj not counting triangulated faces properly...
+        // Would be easy fix
+        mesh->vertex_count = shape->length * 3;
+        mesh->vertex_offset = shape->face_offset * 3;
+        mesh->material_index = attrib.material_ids[shape->face_offset];
+    }
+
+    for (u32 i = 0; i < material_count; ++i)
+    {
+        Material *material = &model_materials[i];
+        // material->diffuse = load_texture(...)
+    }
+
+    return load_model(vertex_buffer, triangle_count * 3, mesh_count, model_meshes, material_count, model_materials);
 }

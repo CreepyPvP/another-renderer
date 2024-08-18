@@ -72,11 +72,12 @@ i32 main()
     initialize_backend();
 
     CommandBuffer commands;
-    Model bunny = parse_obj("assets/bunny.obj");
+    // Model bunny = parse_obj("assets/bunny.obj");
+    Model sponza = parse_obj("assets/sponza/sponza.obj");
 
     init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
 
-    Mat4 projection = perspective(45, (f32) window_width / (f32) window_height, 0.01, 1000);
+    Mat4 projection = perspective(45, (f32) window_width / (f32) window_height, 0.1, 10000);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -115,7 +116,7 @@ i32 main()
         commands.group->proj = projection * to_view_matrix(&camera);
 
         push_clear({0.1, 0.1, 0.2, 1.0});
-        push_draw_model(bunny);
+        push_draw_model(sponza);
 
         execute_commands(&commands, window_width, window_height);
 

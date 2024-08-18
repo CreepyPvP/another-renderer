@@ -19,10 +19,34 @@ struct Vertex
     V2 uv;
 };
 
+struct Texture
+{
+    u32 id;
+};
+
+struct Material
+{
+    Texture diffuse;
+};
+
+struct Mesh
+{
+    u32 vertex_count;
+    u32 vertex_offset;
+
+    // -1 means default material
+    i32 material_index;
+};
+
 struct Model
 {
     u32 id;
-    u32 vertex_count;
+
+    u32 mesh_count;
+    Mesh *meshes;
+
+    u32 material_count;
+    Material *materials;
 };
 
 struct RenderGroup
@@ -69,7 +93,8 @@ void push_draw_model(Model model, u32 group = 0);
 
 void initialize_backend();
 void execute_commands(CommandBuffer *commands, u32 width, u32 height);
-Model load_model(Vertex *vertex_buffer, u32 vertex_count);
+
+Model load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *material);
 
 // Asset loading...
 

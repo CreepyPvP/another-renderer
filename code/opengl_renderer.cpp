@@ -1,6 +1,8 @@
 #include "renderer.h"
 
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -127,7 +129,12 @@ void draw_model(DrawModelCommand *draw, CommandBuffer *commands)
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &commands->group[draw->group].proj);
 
     glBindVertexArray(draw->model.id);
-    glDrawArrays(GL_TRIANGLES, 0, draw->model.vertex_count);
+    for (u32 i = 0; i < draw->model.mesh_count; ++i)
+    {
+        Mesh *mesh = &draw->model.meshes[i];
+        // TODO: Set material uniforms here
+        glDrawArrays(GL_TRIANGLES, mesh->vertex_offset, mesh->vertex_count);
+    }
 }
 
 void execute_commands(CommandBuffer *commands, u32 width, u32 height)
@@ -212,7 +219,7 @@ Shader load_shader(const char* vertex_file, const char* frag_file)
     return shader;
 }
 
-Model load_model(Vertex *vertex_buffer, u32 vertex_count)
+Model load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *materials)
 {
     Model model = {};
 
@@ -224,7 +231,7 @@ Model load_model(Vertex *vertex_buffer, u32 vertex_count)
     glGenBuffers(1, &vert_buffer);
 
     glBindBuffer(GL_ARRAY_BUFFER, vert_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertex_count, vertex_buffer, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * total_vertices, vertex_buffer, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void*) offsetof(Vertex, position));
@@ -241,7 +248,13 @@ Model load_model(Vertex *vertex_buffer, u32 vertex_count)
     glBindVertexArray(0);
 
     model.id = vao;
-    model.vertex_count = vertex_count;
+    model.mesh_count = mesh_count;
+    model.meshes = (Mesh *) malloc(sizeof(Mesh) * mesh_count);
+    model.material_count = material_count;
+    model.materials = (Material *) malloc(sizeof(Material) * material_count);
+
+    memcpy(model.meshes, meshes, sizeof(Mesh) * mesh_count);
+    memcpy(model.materials, materials, sizeof(Material) * material_count);
 
     return model;
 }

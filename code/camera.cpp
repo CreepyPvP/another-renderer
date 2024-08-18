@@ -7,7 +7,7 @@ void init_camera(Camera *camera, V3 pos, V3 front)
 {
     camera->pos = pos;
     camera->front = norm(front);
-    camera->speed = 3;
+    camera->speed = 300;
 
     // TODO: Calculate pitch and yaw here to prevent jumping
     camera->yaw = 0;
