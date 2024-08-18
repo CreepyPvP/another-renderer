@@ -2,6 +2,8 @@
 
 #include "game.h"
 
+#define PI 3.14159
+
 struct Mat4
 {
     f32 v[16];
@@ -30,7 +32,18 @@ union V3
     };
 
     V3 operator-(V3 b);
+    V3 operator+(V3 b);
 };
+
+inline V2 v2(f32 x)
+{
+    return { x, x };
+}
+
+inline V2 v2(f32 x, f32 y)
+{
+    return { x, y };
+}
 
 inline V3 v3(f32 x)
 {
@@ -49,6 +62,13 @@ inline Mat4 mat4(f32 x)
              0, 0, x, 0,
              0, 0, 0, x };
 }
+
+inline f32 radians(f32 degrees)
+{
+    return degrees / 360 * 2 * PI;
+}
+
+V2 norm(V2 a);
 
 V3 norm(V3 a);
 f32 dot(V3 a, V3 b);

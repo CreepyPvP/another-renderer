@@ -19,15 +19,31 @@ Mat4 Mat4::operator*(Mat4 b)
     return res;
 }
 
+V2 norm(V2 a)
+{
+    f32 len = sqrt(a.x * a.x + a.y * a.y );
+    if (len < 0.0001) 
+    {
+        return v2(0);
+    }
+    return v2(a.x / len, a.y / len);
+}
+
 V3 V3::operator-(V3 b)
 {
     return { x - b.x, y - b.y, z - b.z };
 }
 
+V3 V3::operator+(V3 b)
+{
+    return { x + b.x, y + b.y, z + b.z };
+}
+
 V3 norm(V3 a)
 {
     f32 len = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
-    if (len < 0.0001) {
+    if (len < 0.0001) 
+    {
         return v3(0);
     }
     return v3(a.x / len, a.y / len, a.z / len);
