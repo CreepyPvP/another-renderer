@@ -21,7 +21,7 @@ void filereader_callback(void *ctx, const char *filename, i32 is_mtl, const char
 Model parse_obj(const char *dir, const char *file)
 {
     char path[256];
-    sprintf("%s/%s", dir, file);
+    sprintf(path, "%s/%s", dir, file);
 
     obj::tinyobj_attrib_t attrib = {};
 
@@ -61,8 +61,8 @@ Model parse_obj(const char *dir, const char *file)
             vertex.normal.y = attrib.normals[vn_index * 3 + 1];
             vertex.normal.z = attrib.normals[vn_index * 3 + 2];
 
-            vertex.uv.x = attrib.normals[vt_index * 2 + 0];
-            vertex.uv.y = attrib.normals[vt_index * 2 + 1];
+            vertex.uv.x = attrib.texcoords[vt_index * 2 + 0];
+            vertex.uv.y = attrib.texcoords[vt_index * 2 + 1];
 
             if (material_id != -1)
             {
@@ -85,8 +85,7 @@ Model parse_obj(const char *dir, const char *file)
     {
         Mesh *mesh = &model_meshes[i];
         obj::tinyobj_shape_t *shape = &meshes[i];
-        // TODO: If *any* weirednes happens, it might be caused by tinyobj not counting triangulated faces properly...
-        // Would be easy fix
+
         mesh->vertex_count = shape->length * 3;
         mesh->vertex_offset = shape->face_offset * 3;
         mesh->material_index = attrib.material_ids[shape->face_offset];
@@ -95,9 +94,17 @@ Model parse_obj(const char *dir, const char *file)
     for (u32 i = 0; i < material_count; ++i)
     {
         Material *material = &model_materials[i];
+        *material = {};
+
         // 'materials[i].diffuse_texname' contains values like "textures/some_texture.png"
-        // material->diffuse = load_texture(...)
+        char *diffuse_texture = materials[i].diffuse_texname;
+        if (diffuse_texture)
+        {
+            sprintf(path, "%s/%s", dir, diffuse_texture);
+            material->diffuse = load_texture(path);
+            material->flags |= Material_DiffuseTexture;
+        }
     }
 
-    return load_model(vertex_buffer, triangle_count * 3, mesh_count, model_meshes, material_count, model_materials);
+    return opengl_load_model(vertex_buffer, triangle_count * 3, mesh_count, model_meshes, material_count, model_materials);
 }

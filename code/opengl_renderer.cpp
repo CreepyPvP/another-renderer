@@ -23,10 +23,12 @@ struct opengl
 {
     i32 max_samples;
 
+    Texture white;
+    Material default_material;
     Shader default_shader;
 };
 
-opengl OPENGL;
+opengl OPENGL = {};
 
 Shader load_shader(const char* vertex_file, const char* frag_file);
 
@@ -88,7 +90,7 @@ void APIENTRY debug_output(GLenum source,
     warn("OPENGL (%s, Source: %s, Type: %s): %s", severity_str, source_str, type_str, message);
 }
 
-void initialize_backend()
+void opengl_initialize()
 {
     assert(gladLoadGLLoader((GLADloadproc) glfwGetProcAddress));
 
@@ -108,6 +110,21 @@ void initialize_backend()
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
 #endif
 
+    TextureLoadOp load_white = {};
+    load_white.width = 2;
+    load_white.height = 2;
+    load_white.num_channel = 4;
+    
+    u8 buffer[16] = {
+        255, 255, 255, 255,
+        255, 255, 255, 255,
+        255, 255, 255, 255,
+        255, 255, 255, 255,
+    };
+
+    load_white.data = buffer;
+
+    OPENGL.white = opengl_load_texture(&load_white);
     OPENGL.default_shader = load_shader("shader/default_vert.glsl", "shader/default_frag.glsl");
 }
 
@@ -134,12 +151,27 @@ void draw_model(DrawModelCommand *draw, CommandBuffer *commands)
     for (u32 i = 0; i < draw->model.mesh_count; ++i)
     {
         Mesh *mesh = &draw->model.meshes[i];
+        Material *material = &OPENGL.default_material;
+
+        if (mesh->material_index >= 0)
+        {
+            material = &draw->model.materials[mesh->material_index];
+        }
+
         // TODO: Set material uniforms here
+
+        Texture diffuse_texture = OPENGL.white;
+        if (material->flags & Material_DiffuseTexture)
+        {
+            diffuse_texture = material->diffuse;
+        }
+        glBindTexture(GL_TEXTURE_2D, diffuse_texture.id);
+
         glDrawArrays(GL_TRIANGLES, mesh->vertex_offset, mesh->vertex_count);
     }
 }
 
-void execute_commands(CommandBuffer *commands, u32 width, u32 height)
+void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
 {
     glViewport(0, 0, width, height);
 
@@ -221,7 +253,7 @@ Shader load_shader(const char* vertex_file, const char* frag_file)
     return shader;
 }
 
-Model load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *materials)
+Model opengl_load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *materials)
 {
     Model model = {};
 
@@ -260,4 +292,26 @@ Model load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh
     memcpy(model.materials, materials, sizeof(Material) * material_count);
 
     return model;
+}
+
+Texture opengl_load_texture(TextureLoadOp *load)
+{
+    Texture texture = {};
+    glGenTextures(1, &texture.id);
+    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    u32 format = GL_RGBA;
+    if (load->num_channel == 3) 
+    {
+        format = GL_RGB;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, load->width, load->height, 0, format, GL_UNSIGNED_BYTE, load->data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    
+    return texture;
 }

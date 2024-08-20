@@ -1,6 +1,9 @@
 #include "renderer.h"
 #include "tinyobj_loader_c.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 CommandBuffer *active_commands;
 
 void command_buffer(CommandBuffer *commands)
@@ -43,4 +46,25 @@ void push_draw_model(Model model, u32 group)
     draw->type = Command_DrawModel;
     draw->model = model;
     draw->group = group;
+}
+
+Texture load_texture(char *file)
+{
+    TextureLoadOp load = {};
+    load.num_channel = 4;
+    
+    stbi_set_flip_vertically_on_load(true);
+    load.data = stbi_load(file, &load.width, &load.height, &load.num_channel, STBI_default);
+
+    if (!load.data)
+    {
+        error("Failed to load image: %s", file);
+        assert(0);
+    }
+
+    Texture texture = opengl_load_texture(&load);
+
+    stbi_image_free(load.data);
+
+    return texture;
 }

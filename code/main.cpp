@@ -69,7 +69,7 @@ i32 main()
 
     create_window();
 
-    initialize_backend();
+    opengl_initialize();
 
     CommandBuffer commands;
     // Model bunny = parse_obj("assets/bunny.obj");
@@ -118,7 +118,7 @@ i32 main()
         push_clear({0.1, 0.1, 0.2, 1.0});
         push_draw_model(sponza);
 
-        execute_commands(&commands, window_width, window_height);
+        opengl_execute_commands(&commands, window_width, window_height);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
