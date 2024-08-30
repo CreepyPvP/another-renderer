@@ -10,11 +10,12 @@ out vec3 normal;
 out vec2 uv;
 
 uniform mat4 proj;
+uniform mat4 model;
 
 void main() {
     color = aColor;
-    normal = aNorm;
+    normal = normalize((model * vec4(aNorm, 0)).xyz);
     uv = aUv;
 
-    gl_Position = proj * vec4(aPos, 1);
+    gl_Position = proj * model * vec4(aPos, 1);
 }

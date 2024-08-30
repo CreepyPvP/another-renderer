@@ -105,3 +105,56 @@ Mat4 look_at(V3 eye, V3 target, V3 up)
 
     return res;
 }
+
+Mat4 mat_translate(V3 value)
+{
+    return {
+        1,       0,       0,       0,
+        0,       1,       0,       0,
+        0,       0,       1,       0,
+        value.x, value.y, value.z, 1,
+    };
+}
+
+Mat4 mat_scale(V3 value)
+{
+    return {
+        value.x, 0, 0, 0,
+        0, value.y, 0, 0,
+        0, 0, value.z, 0,
+        0, 0, 0, 1,
+    };
+}
+
+Mat4 mat_rotate(V3 value)
+{
+    f32 cosx = cos(value.x);
+    f32 sinx = sin(value.x);
+    f32 cosy = cos(value.y);
+    f32 siny = sin(value.y);
+    f32 cosz = cos(value.z);
+    f32 sinz = sin(value.z);
+
+    Mat4 rx = {
+        1, 0, 0, 0,
+        0, cosx, sinx, 0,
+        0, -sinx, cosx, 0,
+        0, 0, 0, 1,
+    };
+
+    Mat4 ry = {
+        cosy, 0, -siny, 0,
+        0, 1, 0, 0,
+        siny, 0, cosy, 0,
+        0, 0, 0, 1,
+    };
+
+    Mat4 rz = {
+        cosz, sinz, 0, 0,
+        -sinz, cosz, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    };
+
+    return rx * ry * rz;
+}

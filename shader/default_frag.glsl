@@ -14,7 +14,9 @@ void main()
 {
     vec3 diffuse_color = texture(diffuse_texture, uv).rgb * color;
 
-    out_Color = vec4(diffuse_color * max(0.8 * dot(normal, l), 0) + vec3(0.2) * diffuse_color, 1);
-    // out_Color = vec4(normal, 1);
+    vec3 n = normalize(normal);
+
+    out_Color = vec4(diffuse_color * max(0.8 * dot(n, l), 0) + vec3(0.2) * diffuse_color, 1);
+    // out_Color = vec4(n, 1);
     // out_Color = vec4(uv, 0, 1);
 }

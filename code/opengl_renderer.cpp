@@ -278,6 +278,7 @@ void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
 {
     glUseProgram(OPENGL.default_shader.id);
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &commands->group[draw->group].proj);
+    uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Model], &draw->transform);
 
     glBindVertexArray(draw->model.id);
     // glDrawArrays(GL_TRIANGLES, 0, draw->model.total_vertices);
@@ -464,6 +465,7 @@ Shader opengl_load_shader(const char* vertex_file, const char* frag_file)
     glDeleteShader(frag_prog);
 
     shader.locs[ShaderLoc_Proj] = glGetUniformLocation(shader.id, "proj");
+    shader.locs[ShaderLoc_Model] = glGetUniformLocation(shader.id, "model");
 
     return shader;
 }

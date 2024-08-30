@@ -18,6 +18,7 @@ enum
 enum 
 {
     ShaderLoc_Proj,
+    ShaderLoc_Model,
     ShaderLoc_Count,
 };
 
@@ -128,6 +129,7 @@ struct DrawModelCommand
     CommandType type;
     Model model;
     u32 group;
+    Mat4 transform;
 };
 
 struct BlitCommand
@@ -151,13 +153,20 @@ void command_buffer(CommandBuffer *commands);
 
 RenderGroup *push_render_group();
 
+// Transforms ...
+//
+// void transform_translate(V3 value);
+// void transform_rotate(V3 value);
+// void transform_scale(V3 value);
+
+// Commands ...
+
 void set_render_target(Framebuffer *target);
 
 void push_blit(Framebuffer *dest, Framebuffer *source);
 void push_screen_rect(Texture texture, Shader *shader);
 void push_clear(Color color);
-void push_draw_model(Model model, u32 group = 0);
-
+void push_draw_model(Model model, V3 position = {}, V3 rotation = {}, V3 scale = {1, 1, 1}, u32 group = 0);
 
 // Asset loading...
 

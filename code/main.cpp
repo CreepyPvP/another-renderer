@@ -89,8 +89,8 @@ i32 main()
 
     CommandBuffer commands;
     Mat4 projection;
-    // Model bunny = parse_obj("assets/bunny.obj");
-    Model sponza = parse_obj("assets/sponza", "sponza.obj");
+    Model bunny = parse_obj("assets", "bunny.obj");
+    // Model sponza = parse_obj("assets/sponza", "sponza.obj");
     Shader post_shader = opengl_load_shader("shader/postprocess_vert.glsl", "shader/postprocess_frag.glsl");
 
     init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
@@ -146,7 +146,21 @@ i32 main()
 
         set_render_target(&main_target);
         push_clear({0.4, 0.2, 0.3, 1.0});
-        push_draw_model(sponza);
+        // push_draw_model(sponza);
+
+        static f32 degree;
+        degree += delta * 90;
+        push_draw_model(bunny, v3(0, -5, 0), radians(v3(degree, 0, 0)), v3(40));
+        push_draw_model(bunny, v3(80, -5, 0), radians(v3(0, degree, 0)), v3(40));
+        push_draw_model(bunny, v3(160, -5, 0), radians(v3(0, 0, degree)), v3(40));
+
+        // for (i32 x = -1; x <= 1; ++x)
+        // {
+        //     for (i32 y = -1; y <= 1; ++y)
+        //     {
+        //         push_draw_model(bunny, {3.0f * x, 3.0f * y, 0});
+        //     }
+        // }
 
         push_blit(&postprocess_target, &main_target);
 

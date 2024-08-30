@@ -68,6 +68,11 @@ inline f32 radians(f32 degrees)
     return degrees / 360 * 2 * PI;
 }
 
+inline V3 radians(V3 degrees)
+{
+    return v3(radians(degrees.x), radians(degrees.y), radians(degrees.z));
+}
+
 V2 norm(V2 a);
 
 V3 norm(V3 a);
@@ -76,3 +81,7 @@ V3 cross(V3 a, V3 b);
 
 Mat4 perspective(f32 fov, f32 aspect, f32 near_plane, f32 far_plane);
 Mat4 look_at(V3 eye, V3 target, V3 up);
+
+Mat4 mat_translate(V3 value);
+Mat4 mat_scale(V3 value);
+Mat4 mat_rotate(V3 value);
