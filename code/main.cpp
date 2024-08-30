@@ -27,7 +27,7 @@ Framebuffer postprocess_target = {};
 void update_framebuffer()
 {
     opengl_destroy_framebuffer(&main_target);
-    main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH);
+    main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH  | FRAMEBUFFER_MULTISAMPLED);
     postprocess_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR);
     // main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_MULTISAMPLED | FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH);
 }
@@ -143,11 +143,11 @@ i32 main()
 
         commands.group->proj = projection * to_view_matrix(&camera);
 
-        // set_render_target(&main_target);
+        set_render_target(&main_target);
         push_clear({0.4, 0.2, 0.3, 1.0});
         push_draw_model(sponza);
 
-        // push_blit(NULL, &main_target);
+        push_blit(&postprocess_target, &main_target);
 
         // set_render_target(NULL);
         // push_clear({0.4, 0.4, 0.6, 1.0});

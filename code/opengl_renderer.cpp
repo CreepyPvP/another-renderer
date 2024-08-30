@@ -104,6 +104,7 @@ void opengl_initialize()
     glEnable(GL_DEPTH_TEST);
     // glDisable(GL_CULL_FACE);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -285,7 +286,7 @@ void opengl_clear_buffer(ClearCommand *clear)
 {
     Color color = clear->color;
     glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
