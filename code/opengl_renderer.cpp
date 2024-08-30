@@ -21,7 +21,12 @@ struct Shader
 
 struct opengl
 {
+    u32 quad_vao;
+
     i32 max_samples;
+
+    u32 render_width;
+    u32 render_height;
 
     Texture white;
     Material default_material;
@@ -45,7 +50,6 @@ void APIENTRY debug_output(GLenum source,
     {
         return; 
     }
-
     
     if (severity == GL_DEBUG_SEVERITY_LOW) 
     {
@@ -126,6 +130,30 @@ void opengl_initialize()
 
     OPENGL.white = opengl_load_texture(&load_white);
     OPENGL.default_shader = load_shader("shader/default_vert.glsl", "shader/default_frag.glsl");
+
+    // f32 quad_vertices[5 * 4] = {
+    //     -1, 1, 0, 0, 1,
+    //     1, 1, 0, 1, 1,
+    //     -1, -1, 0, 0, 0,
+    //     1, -1, 0, 1, 0,
+    // };
+
+    // glGenVertexArrays(1, &OPENGL.quad_vao);
+    // glBindVertexArray(OPENGL.quad_vao);
+    //
+    // u32 quad_vertex_buffer;
+    // glGenBuffers(1, &quad_vertex_buffer);
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(f32) * 5 * 4, quad_vertices, GL_STATIC_DRAW);
+    //
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(f32) * 5, (void*) 0);
+    //
+    // glEnableVertexAttribArray(3);
+    // glVertexAttribPointer(3, 2, GL_FLOAT, false, sizeof(f32) * 5, (void*) (sizeof(f32) * 3));
+    //
+    // glBindVertexArray(0);
 }
 
 void uniform_mat4(u32 id, Mat4 *mat)
@@ -133,14 +161,134 @@ void uniform_mat4(u32 id, Mat4 *mat)
     glUniformMatrix4fv(id, 1, false, (f32 *) mat);
 }
 
-void clear_buffer(ClearCommand *clear)
+Framebuffer opengl_create_framebuffer(u32 width, u32 height, u32 flags)
+{
+    Framebuffer res = {};
+    res.width = width;
+    res.height = height;
+    res.flags = flags | FRAMEBUFFER_INITIALIZED;
+
+    glGenFramebuffers(1, &res.id);
+    glBindFramebuffer(GL_FRAMEBUFFER, res.id);
+
+    bool multisampled = flags & FRAMEBUFFER_MULTISAMPLED;
+    bool filtered = flags & FRAMEBUFFER_FILTERED;
+    bool depth = flags & FRAMEBUFFER_DEPTH;
+    bool depth_tex = flags & FRAMEBUFFER_DEPTH_TEX;
+    bool color = flags & FRAMEBUFFER_COLOR;
+
+    assert(!(depth && depth_tex));
+
+    u32 filter = filtered? GL_LINEAR : GL_NEAREST;
+
+    if (color) 
+    {
+        u32 slot = multisampled? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+
+        glGenTextures(1, &res.color.id);
+        glBindTexture(slot, res.color.id);
+
+        if (multisampled) 
+        {
+            // GL_RGBA32f for hdr
+            glTexImage2DMultisample(slot, OPENGL.max_samples, GL_RGBA, width, height, GL_TRUE);
+        } 
+        else 
+        {
+            glTexImage2D(slot, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(slot, GL_TEXTURE_MIN_FILTER, filter);
+            glTexParameteri(slot, GL_TEXTURE_MAG_FILTER, filter);
+            glTexParameteri(slot, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(slot, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, slot, res.color.id, 0);
+        glBindTexture(slot, 0);
+    } 
+    else 
+    {
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+    }
+
+    if (depth) 
+    {
+        glGenRenderbuffers(1, &res.depth);
+        glBindRenderbuffer(GL_RENDERBUFFER, res.depth);
+
+        if (multisampled) 
+        {
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, OPENGL.max_samples, GL_DEPTH_COMPONENT, width, height);
+        } 
+        else 
+        {
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+        }
+
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, res.depth);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    }
+    
+    if (depth_tex) 
+    {
+        glGenTextures(1, &res.depth_tex.id);
+        glBindTexture(GL_TEXTURE_2D, res.depth_tex.id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);  
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, res.depth_tex.id, 0);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+
+    u32 attachments[] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, attachments);
+
+    u32 status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    assert(status == GL_FRAMEBUFFER_COMPLETE);
+
+    return res;
+}
+
+void opengl_destroy_framebuffer(Framebuffer *framebuffer)
+{
+    bool initialized = framebuffer->flags & FRAMEBUFFER_INITIALIZED;
+    bool depth = framebuffer->flags & FRAMEBUFFER_DEPTH;
+    bool color = framebuffer->flags & FRAMEBUFFER_COLOR;
+    bool depth_tex = framebuffer->flags & FRAMEBUFFER_DEPTH_TEX;
+
+    if (!initialized) 
+    {
+        return;
+    }
+
+    glDeleteFramebuffers(1, &framebuffer->id);
+
+    if (color) 
+    {
+        glDeleteTextures(1, &framebuffer->color.id);
+    }
+    if (depth_tex) 
+    {
+        glDeleteTextures(1, &framebuffer->depth_tex.id);
+    }
+    if (depth) 
+    {
+        glDeleteRenderbuffers(1, &framebuffer->depth);
+    }
+}
+
+void opengl_clear_buffer(ClearCommand *clear)
 {
     Color color = clear->color;
     glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void draw_model(DrawModelCommand *draw, CommandBuffer *commands)
+void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
 {
     glUseProgram(OPENGL.default_shader.id);
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &commands->group[draw->group].proj);
@@ -158,9 +306,8 @@ void draw_model(DrawModelCommand *draw, CommandBuffer *commands)
             material = &draw->model.materials[mesh->material_index];
         }
 
-        // TODO: Set material uniforms here
-
         Texture diffuse_texture = OPENGL.white;
+
         if (material->flags & Material_DiffuseTexture)
         {
             diffuse_texture = material->diffuse;
@@ -171,9 +318,51 @@ void draw_model(DrawModelCommand *draw, CommandBuffer *commands)
     }
 }
 
+void opengl_set_render_target(Framebuffer *target)
+{
+    u32 width = target? target->width : OPENGL.render_width;
+    u32 height = target? target->height : OPENGL.render_height;
+    u32 id = target? target->id : 0;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
+    glViewport(0, 0, width, height);
+}
+
+void opengl_blit(BlitCommand *blit)
+{
+    // opengl_set_render_target(blit->dest);
+    // 
+    // glDisable(GL_DEPTH_TEST);
+    // glDisable(GL_CULL_FACE);
+    //
+    // glUseProgram(OPENGL.default_shader.id);
+    // uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &mat4(1));
+    //
+    // glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, blit->source.id);
+    //
+    // glBindVertexArray(OPENGL.quad_vao);
+    // glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    //
+    // glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_CULL_FACE);
+
+    u32 dest_id = blit->dest? blit->dest->id : 0;
+    u32 dest_width = blit->dest? blit->dest->width : OPENGL.render_width;
+    u32 dest_height = blit->dest? blit->dest->height : OPENGL.render_height;
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, blit->source->id);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dest_id);
+
+    assert(blit->source->width == dest_width);
+    glBlitFramebuffer(0, 0, blit->source->width, blit->source->height, 0, 0, dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+}
+
 void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
 {
-    glViewport(0, 0, width, height);
+    OPENGL.render_width = width;
+    OPENGL.render_height = height;
+
+    opengl_set_render_target(NULL);
 
     u32 offset = 0;
     while (offset < commands->write)
@@ -184,15 +373,29 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
         {
             case Command_Clear: {
                 ClearCommand *clear = (ClearCommand *) advance_pointer(commands->memory, offset);
-                clear_buffer(clear);
+                opengl_clear_buffer(clear);
                 offset += sizeof(ClearCommand);
                 break;
             }
 
             case Command_DrawModel: {
                 DrawModelCommand *draw = (DrawModelCommand *) advance_pointer(commands->memory, offset);
-                draw_model(draw, commands);
+                opengl_draw_model(draw, commands);
                 offset += sizeof(DrawModelCommand);
+                break;
+            }
+
+            case Command_SetTarget: {
+                SetRenderTargetCommand *set_target = (SetRenderTargetCommand *) advance_pointer(commands->memory, offset);
+                opengl_set_render_target(set_target->target);
+                offset += sizeof(SetRenderTargetCommand);
+                break;
+            }
+
+            case Command_Blit: {
+                BlitCommand *blit = (BlitCommand *) advance_pointer(commands->memory, offset);
+                opengl_blit(blit);
+                offset += sizeof(BlitCommand);
                 break;
             }
 
@@ -200,6 +403,8 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
                 assert(0);
             }
         }
+
+        assert(glGetError() == GL_NO_ERROR);
     }
 }
 
@@ -301,8 +506,10 @@ Texture opengl_load_texture(TextureLoadOp *load)
     glBindTexture(GL_TEXTURE_2D, texture.id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     u32 format = GL_RGBA;
     if (load->num_channel == 3) 

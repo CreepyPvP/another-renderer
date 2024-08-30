@@ -22,6 +22,7 @@ void *_push_command(u32 size)
     assert(write + size <= sizeof(active_commands->memory));
     void *command = &active_commands->memory[write];
     active_commands->write += size;
+    memset(command, 0, size);
     return command;
 }
 
@@ -31,6 +32,13 @@ RenderGroup *push_render_group()
     RenderGroup *group = &active_commands->group[active_commands->render_group_count];
     active_commands->render_group_count++;
     return group;
+}
+
+void set_render_target(Framebuffer *target)
+{
+    SetRenderTargetCommand *set_target = push_command(SetRenderTargetCommand);
+    set_target->type = Command_SetTarget;
+    set_target->target = target;
 }
 
 void push_clear(Color color)
@@ -46,6 +54,16 @@ void push_draw_model(Model model, u32 group)
     draw->type = Command_DrawModel;
     draw->model = model;
     draw->group = group;
+}
+
+void push_blit(Framebuffer *dest, Framebuffer *source)
+{
+    BlitCommand *blit = push_command(BlitCommand);
+    blit->type = Command_Blit;
+
+    assert(source);
+    blit->source = source;
+    blit->dest = dest;
 }
 
 Texture load_texture(char *file)

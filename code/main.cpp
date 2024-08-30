@@ -10,6 +10,8 @@
 
 u32 window_width = 960;
 u32 window_height = 540;
+bool window_active = true;
+
 bool fullscreen = false;
 
 f64 prev_mouse_x;
@@ -19,10 +21,23 @@ GLFWwindow *window;
 
 Camera camera;
 
+Framebuffer main_target = {};
+Framebuffer postprocess_target = {};
+
+void update_framebuffer()
+{
+    opengl_destroy_framebuffer(&main_target);
+    main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH);
+    postprocess_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR);
+    // main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_MULTISAMPLED | FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH);
+}
+
 void resize_callback(GLFWwindow *window, i32 width, i32 height)
 {
     window_width = width;
     window_height = height;
+
+    window_active = width && height;
 }
 
 void mouse_callback(GLFWwindow *window, f64 pos_x, f64 pos_y)
@@ -70,20 +85,33 @@ i32 main()
     create_window();
 
     opengl_initialize();
+    // update_framebuffer();
 
     CommandBuffer commands;
+    Mat4 projection;
     // Model bunny = parse_obj("assets/bunny.obj");
     Model sponza = parse_obj("assets/sponza", "sponza.obj");
 
     init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
 
-    Mat4 projection = perspective(45, (f32) window_width / (f32) window_height, 0.1, 10000);
-
     while (!glfwWindowShouldClose(window))
     {
+        if (!window_active)
+        {
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+            continue;
+        }
+
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
         {
             glfwSetWindowShouldClose(window, true);
+        }
+
+        if (main_target.width != window_width || main_target.height != window_height)
+        {
+            update_framebuffer();
+            projection = perspective(45, (f32) window_width / (f32) window_height, 0.1, 10000);
         }
 
         u8 input = 0;
@@ -115,8 +143,14 @@ i32 main()
 
         commands.group->proj = projection * to_view_matrix(&camera);
 
-        push_clear({0.1, 0.1, 0.2, 1.0});
+        // set_render_target(&main_target);
+        push_clear({0.4, 0.2, 0.3, 1.0});
         push_draw_model(sponza);
+
+        // push_blit(NULL, &main_target);
+
+        // set_render_target(NULL);
+        // push_clear({0.4, 0.4, 0.6, 1.0});
 
         opengl_execute_commands(&commands, window_width, window_height);
 

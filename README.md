@@ -5,13 +5,18 @@ This is yet another attempt to create a renderer that can render somewhat decent
 ##
 TODO
 
-antialiasing + postprocessing
-textures (maybe need to split meshes for this)
+antialiasing
+postprocessing
+memory managment
+transforms
+
+some pbr
+hdr
+tonemapping
+
 normalmapping
 
 shadowmapping
-
-memory managment
 
 ## Links
 

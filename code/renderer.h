@@ -3,6 +3,12 @@
 #include "game.h"
 #include "game_math.h"
 
+#define FRAMEBUFFER_INITIALIZED (1 << 0)
+#define FRAMEBUFFER_MULTISAMPLED (1 << 1)
+#define FRAMEBUFFER_FILTERED (1 << 2)
+#define FRAMEBUFFER_DEPTH (1 << 3)
+#define FRAMEBUFFER_DEPTH_TEX (1 << 4)
+#define FRAMEBUFFER_COLOR (1 << 5)
 
 struct Color
 {
@@ -23,6 +29,19 @@ struct Vertex
 struct Texture
 {
     u32 id;
+};
+
+struct Framebuffer
+{
+    u32 id;
+    u32 flags;
+
+    u32 width;
+    u32 height;
+
+    Texture color;
+    Texture depth_tex;
+    u32 depth;
 };
 
 enum
@@ -75,6 +94,14 @@ enum CommandType
 {
     Command_Clear,
     Command_DrawModel,
+    Command_SetTarget,
+    Command_Blit,
+};
+
+struct SetRenderTargetCommand
+{
+    CommandType type;
+    Framebuffer *target;
 };
 
 struct ClearCommand
@@ -90,10 +117,23 @@ struct DrawModelCommand
     u32 group;
 };
 
+struct BlitCommand
+{
+    CommandType type;
+
+    Framebuffer *dest;
+    Framebuffer *source;
+
+    Material material;
+};
+
 void command_buffer(CommandBuffer *commands);
 
 RenderGroup *push_render_group();
 
+void set_render_target(Framebuffer *target);
+
+void push_blit(Framebuffer *dest, Framebuffer *source);
 void push_clear(Color color);
 void push_draw_model(Model model, u32 group = 0);
 
@@ -117,6 +157,8 @@ Texture load_texture(char *file);
 void opengl_initialize();
 void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height);
 
-Model opengl_load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *material);
+Framebuffer opengl_create_framebuffer(u32 width, u32 height, u32 flags);
+void opengl_destroy_framebuffer(Framebuffer *framebuffer);
 
+Model opengl_load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *material);
 Texture opengl_load_texture(TextureLoadOp *op);
