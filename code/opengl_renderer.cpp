@@ -7,18 +7,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-enum ShaderLoc
-{
-    ShaderLoc_Proj,
-    ShaderLoc_Count,
-};
-
-struct Shader
-{
-    u32 id;
-    u32 locs[ShaderLoc_Count];
-};
-
 struct opengl
 {
     u32 quad_vao;
@@ -34,8 +22,6 @@ struct opengl
 };
 
 opengl OPENGL = {};
-
-Shader load_shader(const char* vertex_file, const char* frag_file);
 
 
 void APIENTRY debug_output(GLenum source, 
@@ -99,10 +85,9 @@ void opengl_initialize()
     assert(gladLoadGLLoader((GLADloadproc) glfwGetProcAddress));
 
     glGetIntegerv(GL_MAX_SAMPLES, &OPENGL.max_samples);
-    glFrontFace(GL_CCW);
 
+    glFrontFace(GL_CCW);
     glEnable(GL_DEPTH_TEST);
-    // glDisable(GL_CULL_FACE);
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_BLEND);
@@ -130,31 +115,31 @@ void opengl_initialize()
     load_white.data = buffer;
 
     OPENGL.white = opengl_load_texture(&load_white);
-    OPENGL.default_shader = load_shader("shader/default_vert.glsl", "shader/default_frag.glsl");
+    OPENGL.default_shader = opengl_load_shader("shader/default_vert.glsl", "shader/default_frag.glsl");
 
-    // f32 quad_vertices[5 * 4] = {
-    //     -1, 1, 0, 0, 1,
-    //     1, 1, 0, 1, 1,
-    //     -1, -1, 0, 0, 0,
-    //     1, -1, 0, 1, 0,
-    // };
+    f32 quad_vertices[5 * 4] = {
+        -1, 1, 0, 0, 1,
+        1, 1, 0, 1, 1,
+        -1, -1, 0, 0, 0,
+        1, -1, 0, 1, 0,
+    };
 
-    // glGenVertexArrays(1, &OPENGL.quad_vao);
-    // glBindVertexArray(OPENGL.quad_vao);
-    //
-    // u32 quad_vertex_buffer;
-    // glGenBuffers(1, &quad_vertex_buffer);
-    //
-    // glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(f32) * 5 * 4, quad_vertices, GL_STATIC_DRAW);
-    //
-    // glEnableVertexAttribArray(0);
-    // glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(f32) * 5, (void*) 0);
-    //
-    // glEnableVertexAttribArray(3);
-    // glVertexAttribPointer(3, 2, GL_FLOAT, false, sizeof(f32) * 5, (void*) (sizeof(f32) * 3));
-    //
-    // glBindVertexArray(0);
+    glGenVertexArrays(1, &OPENGL.quad_vao);
+    glBindVertexArray(OPENGL.quad_vao);
+
+    u32 quad_vertex_buffer;
+    glGenBuffers(1, &quad_vertex_buffer);
+
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(f32) * 5 * 4, quad_vertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(f32) * 5, (void*) 0);
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, false, sizeof(f32) * 5, (void*) (sizeof(f32) * 3));
+
+    glBindVertexArray(0);
 }
 
 void uniform_mat4(u32 id, Mat4 *mat)
@@ -358,6 +343,23 @@ void opengl_blit(BlitCommand *blit)
     glBlitFramebuffer(0, 0, blit->source->width, blit->source->height, 0, 0, dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
+void opengl_screen_rect(ScreenRectCommand *screen_rect)
+{
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_MULTISAMPLE);
+
+    glUseProgram(screen_rect->shader->id);
+    glBindTexture(GL_TEXTURE_2D, screen_rect->texture.id);
+
+    glBindVertexArray(OPENGL.quad_vao);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
+}
+
 void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
 {
     OPENGL.render_width = width;
@@ -400,6 +402,13 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
                 break;
             }
 
+            case Command_ScreenRect: {
+                ScreenRectCommand *screen_rect = (ScreenRectCommand *) advance_pointer(commands->memory, offset);
+                opengl_screen_rect(screen_rect);
+                offset += sizeof(ScreenRectCommand);
+                break;
+            }
+
             default: {
                 assert(0);
             }
@@ -409,7 +418,7 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
     }
 }
 
-Shader load_shader(const char* vertex_file, const char* frag_file)
+Shader opengl_load_shader(const char* vertex_file, const char* frag_file)
 {
     char info_log[512];
     i32 status;

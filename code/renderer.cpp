@@ -66,6 +66,14 @@ void push_blit(Framebuffer *dest, Framebuffer *source)
     blit->dest = dest;
 }
 
+void push_screen_rect(Texture texture, Shader *shader)
+{
+    ScreenRectCommand *draw = push_command(ScreenRectCommand);
+    draw->type = Command_ScreenRect;
+    draw->texture = texture;
+    draw->shader = shader;
+}
+
 Texture load_texture(char *file)
 {
     TextureLoadOp load = {};

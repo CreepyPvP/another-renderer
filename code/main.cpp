@@ -91,6 +91,7 @@ i32 main()
     Mat4 projection;
     // Model bunny = parse_obj("assets/bunny.obj");
     Model sponza = parse_obj("assets/sponza", "sponza.obj");
+    Shader post_shader = opengl_load_shader("shader/postprocess_vert.glsl", "shader/postprocess_frag.glsl");
 
     init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
 
@@ -111,7 +112,7 @@ i32 main()
         if (main_target.width != window_width || main_target.height != window_height)
         {
             update_framebuffer();
-            projection = perspective(45, (f32) window_width / (f32) window_height, 0.1, 10000);
+            projection = perspective(45, (f32) window_width / (f32) window_height, 0.2, 10000);
         }
 
         u8 input = 0;
@@ -149,8 +150,8 @@ i32 main()
 
         push_blit(&postprocess_target, &main_target);
 
-        // set_render_target(NULL);
-        // push_clear({0.4, 0.4, 0.6, 1.0});
+        set_render_target(NULL);
+        push_screen_rect(postprocess_target.color, &post_shader);
 
         opengl_execute_commands(&commands, window_width, window_height);
 

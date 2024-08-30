@@ -10,6 +10,17 @@
 #define FRAMEBUFFER_DEPTH_TEX (1 << 4)
 #define FRAMEBUFFER_COLOR (1 << 5)
 
+enum
+{
+    Material_DiffuseTexture = (1 << 0),
+};
+
+enum 
+{
+    ShaderLoc_Proj,
+    ShaderLoc_Count,
+};
+
 struct Color
 {
     f32 r;
@@ -44,9 +55,10 @@ struct Framebuffer
     u32 depth;
 };
 
-enum
+struct Shader
 {
-    Material_DiffuseTexture = (1 << 0),
+    u32 id;
+    u32 locs[ShaderLoc_Count];
 };
 
 struct Material
@@ -96,6 +108,7 @@ enum CommandType
     Command_DrawModel,
     Command_SetTarget,
     Command_Blit,
+    Command_ScreenRect,
 };
 
 struct SetRenderTargetCommand
@@ -127,6 +140,13 @@ struct BlitCommand
     Material material;
 };
 
+struct ScreenRectCommand
+{
+    CommandType type;
+    Texture texture;
+    Shader *shader;
+};
+
 void command_buffer(CommandBuffer *commands);
 
 RenderGroup *push_render_group();
@@ -134,6 +154,7 @@ RenderGroup *push_render_group();
 void set_render_target(Framebuffer *target);
 
 void push_blit(Framebuffer *dest, Framebuffer *source);
+void push_screen_rect(Texture texture, Shader *shader);
 void push_clear(Color color);
 void push_draw_model(Model model, u32 group = 0);
 
@@ -161,4 +182,5 @@ Framebuffer opengl_create_framebuffer(u32 width, u32 height, u32 flags);
 void opengl_destroy_framebuffer(Framebuffer *framebuffer);
 
 Model opengl_load_model(Vertex *vertex_buffer, u32 total_vertices, u32 mesh_count, Mesh *meshes, u32 material_count, Material *material);
+Shader opengl_load_shader(const char* vertex_file, const char* frag_file);
 Texture opengl_load_texture(TextureLoadOp *op);
