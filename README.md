@@ -5,18 +5,18 @@ This is yet another attempt to create a renderer that can render somewhat decent
 ##
 TODO
 
-antialiasing
-postprocessing
-memory managment
-transforms
+NEED FOR GAMEJAM:
+    pbr
+    hdr
+    tonemapping
 
-some pbr
-hdr
-tonemapping
+    bloom
 
-normalmapping
+    shadowmapping
+    normalmapping
+    memory managment
+    primitiv drawing
 
-shadowmapping
 
 ## Links
 

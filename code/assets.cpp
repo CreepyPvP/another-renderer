@@ -12,6 +12,16 @@ namespace obj
 #include "tinyobj_loader_c.h"
 }
 
+// Model copy_model(Model *prev)
+// {
+//     Model model = *prev;
+//     model.meshes = (Mesh *) malloc(sizeof(Mesh) * model.mesh_count);
+//     model.materials = (Material *) malloc(sizeof(Material) * model.material_count);
+//     memcpy(model.meshes, prev->meshes, sizeof(Mesh) * model.mesh_count);
+//     memcpy(model.materials, prev->, sizeof(Material) * model.material_count);
+//     return model;
+// }
+
 void filereader_callback(void *ctx, const char *filename, i32 is_mtl, const char *obj_filename, char **buffer, size_t *length)
 {
     *length = 0;
@@ -95,6 +105,9 @@ Model parse_obj(const char *dir, const char *file)
     {
         Material *material = &model_materials[i];
         *material = {};
+
+        material->base_color = v3(1);
+        material->roughness = 0.9;
 
         // 'materials[i].diffuse_texname' contains values like "textures/some_texture.png"
         char *diffuse_texture = materials[i].diffuse_texname;

@@ -117,6 +117,11 @@ void opengl_initialize()
     OPENGL.white = opengl_load_texture(&load_white);
     OPENGL.default_shader = opengl_load_shader("shader/default_vert.glsl", "shader/default_frag.glsl");
 
+    OPENGL.default_material = {};
+    OPENGL.default_material.roughness = 1;
+    OPENGL.default_material.metallic = 0;
+    OPENGL.default_material.base_color = v3(1);
+
     f32 quad_vertices[5 * 4] = {
         -1, 1, 0, 0, 1,
         1, 1, 0, 1, 1,
@@ -145,6 +150,16 @@ void opengl_initialize()
 void uniform_mat4(u32 id, Mat4 *mat)
 {
     glUniformMatrix4fv(id, 1, false, (f32 *) mat);
+}
+
+void uniform_v3(u32 id, V3 value)
+{
+    glUniform3f(id, value.x, value.y, value.z);
+}
+
+void uniform_f(u32 id, f32 value)
+{
+    glUniform1f(id, value);
 }
 
 Framebuffer opengl_create_framebuffer(u32 width, u32 height, u32 flags)
@@ -279,6 +294,7 @@ void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
     glUseProgram(OPENGL.default_shader.id);
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &commands->group[draw->group].proj);
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Model], &draw->transform);
+    uniform_v3(OPENGL.default_shader.locs[ShaderLoc_CameraPos], commands->group[draw->group].camera_pos);
 
     glBindVertexArray(draw->model.id);
     // glDrawArrays(GL_TRIANGLES, 0, draw->model.total_vertices);
@@ -288,9 +304,16 @@ void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
         Mesh *mesh = &draw->model.meshes[i];
         Material *material = &OPENGL.default_material;
 
-        if (mesh->material_index >= 0)
+        if (draw->material)
         {
-            material = &draw->model.materials[mesh->material_index];
+            material = draw->material;
+        }
+        else
+        {
+            if (mesh->material_index >= 0)
+            {
+                material = &draw->model.materials[mesh->material_index];
+            }
         }
 
         Texture diffuse_texture = OPENGL.white;
@@ -300,6 +323,9 @@ void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
             diffuse_texture = material->diffuse;
         }
         glBindTexture(GL_TEXTURE_2D, diffuse_texture.id);
+
+        uniform_v3(OPENGL.default_shader.locs[ShaderLoc_Pbr], v3(material->metallic, material->roughness, 0));
+        uniform_v3(OPENGL.default_shader.locs[ShaderLoc_BaseColor], material->base_color);
 
         glDrawArrays(GL_TRIANGLES, mesh->vertex_offset, mesh->vertex_count);
     }
@@ -466,6 +492,9 @@ Shader opengl_load_shader(const char* vertex_file, const char* frag_file)
 
     shader.locs[ShaderLoc_Proj] = glGetUniformLocation(shader.id, "proj");
     shader.locs[ShaderLoc_Model] = glGetUniformLocation(shader.id, "model");
+    shader.locs[ShaderLoc_CameraPos] = glGetUniformLocation(shader.id, "camera_pos");
+    shader.locs[ShaderLoc_Pbr] = glGetUniformLocation(shader.id, "pbr");
+    shader.locs[ShaderLoc_BaseColor] = glGetUniformLocation(shader.id, "base_color");
 
     return shader;
 }

@@ -48,7 +48,7 @@ void push_clear(Color color)
     clear->color = color;
 }
 
-void push_draw_model(Model model, V3 position, V3 rotation, V3 scale, u32 group)
+void push_draw_model(Model model, V3 position, V3 rotation, V3 scale, Material *material, u32 group)
 {
     DrawModelCommand *draw = push_command(DrawModelCommand);
 
@@ -58,6 +58,7 @@ void push_draw_model(Model model, V3 position, V3 rotation, V3 scale, u32 group)
     draw->model = model;
     draw->group = group;
     draw->transform = transform;
+    draw->material = material;
 }
 
 void push_blit(Framebuffer *dest, Framebuffer *source)

@@ -19,6 +19,10 @@ enum
 {
     ShaderLoc_Proj,
     ShaderLoc_Model,
+    ShaderLoc_CameraPos,
+    // Metallic and roughness
+    ShaderLoc_Pbr,
+    ShaderLoc_BaseColor,
     ShaderLoc_Count,
 };
 
@@ -66,6 +70,9 @@ struct Material
 {
     u32 flags;
     Texture diffuse;
+    f32 roughness;
+    f32 metallic;
+    V3 base_color;
 };
 
 struct Mesh
@@ -91,6 +98,7 @@ struct Model
 
 struct RenderGroup
 {
+    V3 camera_pos;
     Mat4 proj;
 };
 
@@ -130,6 +138,7 @@ struct DrawModelCommand
     Model model;
     u32 group;
     Mat4 transform;
+    Material *material;
 };
 
 struct BlitCommand
@@ -166,7 +175,7 @@ void set_render_target(Framebuffer *target);
 void push_blit(Framebuffer *dest, Framebuffer *source);
 void push_screen_rect(Texture texture, Shader *shader);
 void push_clear(Color color);
-void push_draw_model(Model model, V3 position = {}, V3 rotation = {}, V3 scale = {1, 1, 1}, u32 group = 0);
+void push_draw_model(Model model, V3 position = {}, V3 rotation = {}, V3 scale = {1, 1, 1}, Material *material = NULL, u32 group = 0);
 
 // Asset loading...
 
@@ -179,7 +188,7 @@ struct TextureLoadOp
 };
 
 Model parse_obj(const char *dir, const char *file);
-
+// Model copy_model(Model *prev);
 Texture load_texture(char *file);
 
 // Backend...
