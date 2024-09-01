@@ -23,11 +23,14 @@ Camera camera;
 
 Framebuffer main_target = {};
 Framebuffer postprocess_target = {};
+Framebuffer shadowmap_target = {};
 
 void update_framebuffer()
 {
     opengl_destroy_framebuffer(&main_target);
-    main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH  | FRAMEBUFFER_MULTISAMPLED);
+    main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH  | FRAMEBUFFER_MULTISAMPLED
+                                            | FRAMEBUFFER_HDR);
+                                            // );
     postprocess_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_COLOR);
     // main_target = opengl_create_framebuffer(window_width, window_height, FRAMEBUFFER_MULTISAMPLED | FRAMEBUFFER_COLOR | FRAMEBUFFER_DEPTH);
 }
@@ -48,6 +51,33 @@ void mouse_callback(GLFWwindow *window, f64 pos_x, f64 pos_y)
     prev_mouse_y = pos_y;
 
     update_camera_mouse(&camera, diff);
+}
+
+u8 get_input()
+{
+    u8 input = 0;
+
+    if (glfwGetKey(window, GLFW_KEY_W))
+    {
+        input |= (1 << 0);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_S))
+    {
+        input |= (1 << 1);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_A))
+    {
+        input |= (1 << 2);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_D))
+    {
+        input |= (1 << 3);
+    }
+
+    return input;
 }
 
 void create_window()
@@ -92,6 +122,10 @@ i32 main()
     Model bunny = parse_obj("assets", "bunny.obj");
     Model sponza = parse_obj("assets/sponza", "sponza.obj");
     Shader post_shader = opengl_load_shader("shader/postprocess_vert.glsl", "shader/postprocess_frag.glsl");
+    Shader shadow_shader = opengl_load_shader("shader/shadowpass_vert.glsl", "shader/shadowpass_frag.glsl");
+    Material shadow_material = {};
+
+    shadowmap_target = opengl_create_framebuffer(512, 512, FRAMEBUFFER_DEPTH);
 
     init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
 
@@ -101,7 +135,7 @@ i32 main()
         demo_material[i].metallic = 0;
         demo_material[i].roughness = 0.1 * i;
         demo_material[i].base_color = v3(0.1, 0.2, 0.5);
-        // demo_material[i].base_color
+        // demo_material[i].base_color = v3(1, 2, 5);
     }
 
     f32 prev_frame = glfwGetTime();
@@ -126,34 +160,14 @@ i32 main()
             projection = perspective(45, (f32) window_width / (f32) window_height, 0.2, 10000);
         }
 
-        u8 input = 0;
-
-        if (glfwGetKey(window, GLFW_KEY_W))
-        {
-            input |= (1 << 0);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_S))
-        {
-            input |= (1 << 1);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_A))
-        {
-            input |= (1 << 2);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_D))
-        {
-            input |= (1 << 3);
-        }
+        u8 input = get_input();
 
         f32 frame = glfwGetTime();
         f32 delta = frame - prev_frame;
         prev_frame = frame;
         command_buffer(&commands);
 
-        update_camera(&camera, input, delta);
+        update_camera(&camera, input, 300, delta);
 
         commands.group->proj = projection * to_view_matrix(&camera);
         commands.group->camera_pos = camera.pos;
@@ -168,15 +182,16 @@ i32 main()
         for (u32 i = 0; i <= 10; ++i)
         {
             push_draw_model(bunny, v3(80 * i, -5, 0), radians(v3(0, degree, 0)), v3(40), &demo_material[i]);
-            // push_draw_model(bunny, v3(80 * i, -5, 0), radians(v3(0, degree, 0)), v3(40));
         }
 
-        // for (i32 x = -1; x <= 1; ++x)
+        // // Shadow mapping stuff...
+        // RenderGroup *shadow_group = push_render_group();
+        // shadow_group->proj = ortho(-256, 256, -256, 256, 1, 10000) * ;
+        // set_render_target(&shadowmap_target);
+        // push_draw_model(sponza, v3(0), v3(0), v3(1), &shadow_material, shadow_group);
+        // for (u32 i = 0; i <= 10; ++i)
         // {
-        //     for (i32 y = -1; y <= 1; ++y)
-        //     {
-        //         push_draw_model(bunny, {3.0f * x, 3.0f * y, 0});
-        //     }
+        //     push_draw_model(bunny, v3(80 * i, -5, 0), radians(v3(0, degree, 0)), v3(40), &shadow_material, shadow_group);
         // }
 
         push_blit(&postprocess_target, &main_target);

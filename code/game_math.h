@@ -80,6 +80,7 @@ f32 dot(V3 a, V3 b);
 V3 cross(V3 a, V3 b);
 
 Mat4 perspective(f32 fov, f32 aspect, f32 near_plane, f32 far_plane);
+Mat4 ortho(f32 l, f32 r, f32 b, f32 t, f32 n, f32 f);
 Mat4 look_at(V3 eye, V3 target, V3 up);
 
 Mat4 mat_translate(V3 value);

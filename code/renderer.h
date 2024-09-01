@@ -9,6 +9,7 @@
 #define FRAMEBUFFER_DEPTH (1 << 3)
 #define FRAMEBUFFER_DEPTH_TEX (1 << 4)
 #define FRAMEBUFFER_COLOR (1 << 5)
+#define FRAMEBUFFER_HDR (1 << 6)
 
 enum
 {
@@ -136,7 +137,7 @@ struct DrawModelCommand
 {
     CommandType type;
     Model model;
-    u32 group;
+    RenderGroup *group;
     Mat4 transform;
     Material *material;
 };
@@ -175,7 +176,8 @@ void set_render_target(Framebuffer *target);
 void push_blit(Framebuffer *dest, Framebuffer *source);
 void push_screen_rect(Texture texture, Shader *shader);
 void push_clear(Color color);
-void push_draw_model(Model model, V3 position = {}, V3 rotation = {}, V3 scale = {1, 1, 1}, Material *material = NULL, u32 group = 0);
+void push_draw_model(Model model, V3 position = {}, V3 rotation = {}, V3 scale = {1, 1, 1}, 
+                     Material *material = NULL, RenderGroup *group = NULL);
 
 // Asset loading...
 

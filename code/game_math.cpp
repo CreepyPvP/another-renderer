@@ -77,6 +77,16 @@ Mat4 perspective(f32 fov, f32 aspect, f32 near_plane, f32 far_plane)
     return res;
 }
 
+Mat4 ortho(f32 l, f32 r, f32 b, f32 t, f32 n, f32 f)
+{
+    return {
+        2/(r-l), 0, 0, 0,
+        0, 2/(t-b), 0, 0,
+        0, 0, -2/(f-n), 0,
+        -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1,
+    };
+}
+
 Mat4 look_at(V3 eye, V3 target, V3 up)
 {
     Mat4 res = {};

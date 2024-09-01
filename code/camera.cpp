@@ -7,14 +7,13 @@ void init_camera(Camera *camera, V3 pos, V3 front)
 {
     camera->pos = pos;
     camera->front = norm(front);
-    camera->speed = 300;
 
     // TODO: Calculate pitch and yaw here to prevent jumping
     camera->yaw = 0;
     camera->pitch = 0;
 }
 
-void update_camera(Camera *camera, u8 buttons_pressed, float delta)
+void update_camera(Camera *camera, u8 buttons_pressed, f32 speed, f32 delta)
 {
     V2 movement = v2(0);
 
@@ -38,8 +37,6 @@ void update_camera(Camera *camera, u8 buttons_pressed, float delta)
     movement = norm(movement);
 
     V3 right = norm(cross(camera->front, v3(0, 1, 0)));
-
-    f32 speed = camera->speed;
 
     camera->pos.x += camera->front.x * movement.x * delta * speed;
     camera->pos.y += camera->front.y * movement.x * delta * speed;

@@ -17,6 +17,7 @@ uniform vec3 base_color;
 out vec4 out_Color;
 
 const vec3 l = normalize(vec3(1, 3, -2));
+vec3 light_color = vec3(3);
 
 float g_1(vec3 n, vec3 v, float roughness)
 {
@@ -61,7 +62,7 @@ void main()
     vec3 total_color = specular + diffuse;
 
     float dir = max(0, dot(n, l));
-    out_Color = vec4(total_color * dir + color_sample * 0.1, 1);
+    out_Color = vec4(total_color * dir * light_color + color_sample * 0.1, 1);
     // out_Color = vec4(metallic, roughness, 0, 1);
     // out_Color = vec4(total_color * max(0.8 * dot(n, l), 0) + vec3(0.2) * total_color, 1);
     // out_Color = vec4(n, 1);

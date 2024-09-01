@@ -177,6 +177,7 @@ Framebuffer opengl_create_framebuffer(u32 width, u32 height, u32 flags)
     bool depth = flags & FRAMEBUFFER_DEPTH;
     bool depth_tex = flags & FRAMEBUFFER_DEPTH_TEX;
     bool color = flags & FRAMEBUFFER_COLOR;
+    bool hdr = flags & FRAMEBUFFER_HDR;
 
     assert(!(depth && depth_tex));
 
@@ -189,14 +190,20 @@ Framebuffer opengl_create_framebuffer(u32 width, u32 height, u32 flags)
         glGenTextures(1, &res.color.id);
         glBindTexture(slot, res.color.id);
 
+        u32 format = GL_RGBA;
+        if (hdr)
+        {
+            format = GL_RGBA32F;
+        }
+
         if (multisampled) 
         {
             // GL_RGBA32f for hdr
-            glTexImage2DMultisample(slot, OPENGL.max_samples, GL_RGBA, width, height, GL_TRUE);
+            glTexImage2DMultisample(slot, OPENGL.max_samples, format, width, height, GL_TRUE);
         } 
         else 
         {
-            glTexImage2D(slot, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexImage2D(slot, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, NULL);
             glTexParameteri(slot, GL_TEXTURE_MIN_FILTER, filter);
             glTexParameteri(slot, GL_TEXTURE_MAG_FILTER, filter);
             glTexParameteri(slot, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -292,9 +299,9 @@ void opengl_clear_buffer(ClearCommand *clear)
 void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
 {
     glUseProgram(OPENGL.default_shader.id);
-    uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &commands->group[draw->group].proj);
+    uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &draw->group->proj);
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Model], &draw->transform);
-    uniform_v3(OPENGL.default_shader.locs[ShaderLoc_CameraPos], commands->group[draw->group].camera_pos);
+    uniform_v3(OPENGL.default_shader.locs[ShaderLoc_CameraPos], draw->group->camera_pos);
 
     glBindVertexArray(draw->model.id);
     // glDrawArrays(GL_TRIANGLES, 0, draw->model.total_vertices);
