@@ -9,6 +9,8 @@
 
 struct opengl
 {
+    u32 primitive_vao;
+    u32 primitive_buffer;
     u32 quad_vao;
 
     i32 max_samples;
@@ -144,6 +146,20 @@ void opengl_initialize()
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 2, GL_FLOAT, false, sizeof(f32) * 5, (void*) (sizeof(f32) * 3));
 
+    glBindVertexArray(0);
+
+    glGenVertexArrays(1, &OPENGL.primitive_vao);
+    glGenBuffers(1, &OPENGL.primitive_buffer);
+    glBindVertexArray(OPENGL.primitive_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, OPENGL.primitive_buffer);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), (void *) offsetof(Vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(Vertex), (void *) offsetof(Vertex, normal));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(Vertex), (void *) offsetof(Vertex, color));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, false, sizeof(Vertex), (void *) offsetof(Vertex, uv));
     glBindVertexArray(0);
 }
 
@@ -296,7 +312,21 @@ void opengl_clear_buffer(ClearCommand *clear)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
+void opengl_apply_material(Material *material, Texture fallback_diffuse_texture)
+{
+    Texture diffuse_texture = fallback_diffuse_texture;
+
+    if (material->flags & Material_DiffuseTexture)
+    {
+        diffuse_texture = material->diffuse;
+    }
+    glBindTexture(GL_TEXTURE_2D, diffuse_texture.id);
+
+    uniform_v3(OPENGL.default_shader.locs[ShaderLoc_Pbr], v3(material->metallic, material->roughness, 0));
+    uniform_v3(OPENGL.default_shader.locs[ShaderLoc_BaseColor], material->base_color);
+}
+
+void opengl_draw_model(DrawModelCommand *draw)
 {
     glUseProgram(OPENGL.default_shader.id);
     uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &draw->group->proj);
@@ -323,18 +353,39 @@ void opengl_draw_model(DrawModelCommand *draw, CommandBuffer *commands)
             }
         }
 
-        Texture diffuse_texture = OPENGL.white;
-
-        if (material->flags & Material_DiffuseTexture)
-        {
-            diffuse_texture = material->diffuse;
-        }
-        glBindTexture(GL_TEXTURE_2D, diffuse_texture.id);
-
-        uniform_v3(OPENGL.default_shader.locs[ShaderLoc_Pbr], v3(material->metallic, material->roughness, 0));
-        uniform_v3(OPENGL.default_shader.locs[ShaderLoc_BaseColor], material->base_color);
+        opengl_apply_material(material, OPENGL.white);
 
         glDrawArrays(GL_TRIANGLES, mesh->vertex_offset, mesh->vertex_count);
+    }
+}
+
+void opengl_draw_primitive(DrawPrimitiveCommand *draw)
+{
+    glBindVertexArray(OPENGL.primitive_vao);
+    glUseProgram(OPENGL.default_shader.id);
+    uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Proj], &draw->group->proj);
+    uniform_mat4(OPENGL.default_shader.locs[ShaderLoc_Model], &mat4(1));
+    uniform_v3(OPENGL.default_shader.locs[ShaderLoc_CameraPos], draw->group->camera_pos);
+
+    opengl_apply_material(&OPENGL.default_material, OPENGL.white);
+
+    i32 first_buffer[128];
+    i32 count_buffer[128];
+
+    u32 face_count = 0;
+    u32 vertex_offset = draw->vertex_offset;
+    while (face_count < draw->quad_count)
+    {
+        u32 batch_face;
+        for (batch_face = 0; batch_face < 128 && face_count < draw->quad_count; ++batch_face)
+        {
+            first_buffer[batch_face] = vertex_offset + face_count * 4;
+            count_buffer[batch_face] = 4;
+
+            face_count++;
+        }
+
+        glMultiDrawArrays(GL_TRIANGLE_STRIP, first_buffer, count_buffer, batch_face);
     }
 }
 
@@ -401,6 +452,9 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
 
     opengl_set_render_target(NULL);
 
+    glBindBuffer(GL_ARRAY_BUFFER, OPENGL.primitive_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * commands->vertex_count, commands->vertex_buffer, GL_STREAM_DRAW);
+
     u32 offset = 0;
     while (offset < commands->write)
     {
@@ -417,7 +471,7 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
 
             case Command_DrawModel: {
                 DrawModelCommand *draw = (DrawModelCommand *) advance_pointer(commands->memory, offset);
-                opengl_draw_model(draw, commands);
+                opengl_draw_model(draw);
                 offset += sizeof(DrawModelCommand);
                 break;
             }
@@ -440,6 +494,13 @@ void opengl_execute_commands(CommandBuffer *commands, u32 width, u32 height)
                 ScreenRectCommand *screen_rect = (ScreenRectCommand *) advance_pointer(commands->memory, offset);
                 opengl_screen_rect(screen_rect);
                 offset += sizeof(ScreenRectCommand);
+                break;
+            }
+
+            case Command_DrawPrimitive: {
+                DrawPrimitiveCommand *draw = (DrawPrimitiveCommand *) advance_pointer(commands->memory, offset);
+                opengl_draw_primitive(draw);
+                offset += sizeof(DrawPrimitiveCommand);
                 break;
             }
 

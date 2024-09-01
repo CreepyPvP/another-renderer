@@ -103,6 +103,8 @@ struct RenderGroup
     Mat4 proj;
 };
 
+struct DrawPrimitiveCommand;
+
 struct CommandBuffer
 {
     u32 write;
@@ -110,12 +112,18 @@ struct CommandBuffer
 
     u32 render_group_count;
     RenderGroup group[10];
+
+    u32 vertex_count;
+    Vertex vertex_buffer[1024];
+
+    DrawPrimitiveCommand *active_draw;
 }; 
 
 enum CommandType
 {
     Command_Clear,
     Command_DrawModel,
+    Command_DrawPrimitive,
     Command_SetTarget,
     Command_Blit,
     Command_ScreenRect,
@@ -140,6 +148,14 @@ struct DrawModelCommand
     RenderGroup *group;
     Mat4 transform;
     Material *material;
+};
+
+struct DrawPrimitiveCommand
+{
+    CommandType type;
+    u32 vertex_offset;
+    u32 quad_count;
+    RenderGroup *group;
 };
 
 struct BlitCommand
@@ -168,6 +184,11 @@ RenderGroup *push_render_group();
 // void transform_translate(V3 value);
 // void transform_rotate(V3 value);
 // void transform_scale(V3 value);
+
+// Primitive drawing ...
+
+void push_quad(V3 v0, V3 v1, V3 v2, V3 v3, V3 n, V3 color);
+void push_cube(V3 pos, V3 scale, V3 color);
 
 // Commands ...
 

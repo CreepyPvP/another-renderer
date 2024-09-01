@@ -119,24 +119,13 @@ i32 main()
 
     CommandBuffer commands;
     Mat4 projection;
-    Model bunny = parse_obj("assets", "bunny.obj");
-    Model sponza = parse_obj("assets/sponza", "sponza.obj");
     Shader post_shader = opengl_load_shader("shader/postprocess_vert.glsl", "shader/postprocess_frag.glsl");
     Shader shadow_shader = opengl_load_shader("shader/shadowpass_vert.glsl", "shader/shadowpass_frag.glsl");
-    Material shadow_material = {};
+    // Material shadow_material = {};
 
-    shadowmap_target = opengl_create_framebuffer(512, 512, FRAMEBUFFER_DEPTH);
+    // shadowmap_target = opengl_create_framebuffer(512, 512, FRAMEBUFFER_DEPTH);
 
-    init_camera(&camera, v3(0, 0, 3), v3(0, 0, -1));
-
-    Material demo_material[11] = {};
-    for (u32 i = 0; i <= 10; ++i)
-    {
-        demo_material[i].metallic = 0;
-        demo_material[i].roughness = 0.1 * i;
-        demo_material[i].base_color = v3(0.1, 0.2, 0.5);
-        // demo_material[i].base_color = v3(1, 2, 5);
-    }
+    init_camera(&camera, v3(0, 1, 3), v3(0, 0, -1));
 
     f32 prev_frame = glfwGetTime();
 
@@ -167,32 +156,21 @@ i32 main()
         prev_frame = frame;
         command_buffer(&commands);
 
-        update_camera(&camera, input, 300, delta);
+        update_camera(&camera, input, 40, delta);
 
         commands.group->proj = projection * to_view_matrix(&camera);
         commands.group->camera_pos = camera.pos;
 
         set_render_target(&main_target);
-        push_clear({0.4, 0.2, 0.3, 1.0});
-        push_draw_model(sponza);
+        push_clear({1, 1, 1, 1});
 
-        static f32 degree;
-        degree += delta * 90;
-
-        for (u32 i = 0; i <= 10; ++i)
-        {
-            push_draw_model(bunny, v3(80 * i, -5, 0), radians(v3(0, degree, 0)), v3(40), &demo_material[i]);
-        }
+        push_cube(v3(0), v3(2), v3(0.3, 0.3, 1.0));
+        push_cube(v3(2, 6, -4), v3(1), v3(0.1, 0.3, 0.0));
 
         // // Shadow mapping stuff...
         // RenderGroup *shadow_group = push_render_group();
         // shadow_group->proj = ortho(-256, 256, -256, 256, 1, 10000) * ;
         // set_render_target(&shadowmap_target);
-        // push_draw_model(sponza, v3(0), v3(0), v3(1), &shadow_material, shadow_group);
-        // for (u32 i = 0; i <= 10; ++i)
-        // {
-        //     push_draw_model(bunny, v3(80 * i, -5, 0), radians(v3(0, degree, 0)), v3(40), &shadow_material, shadow_group);
-        // }
 
         push_blit(&postprocess_target, &main_target);
 

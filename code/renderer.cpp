@@ -8,8 +8,12 @@ CommandBuffer *active_commands;
 
 void command_buffer(CommandBuffer *commands)
 {
-    *commands = {};
     active_commands = commands;
+
+    commands->write = 0;
+    commands->render_group_count = 0;
+    commands->vertex_count = 0;
+    commands->active_draw = NULL;
 
     push_render_group();
 }
@@ -22,6 +26,7 @@ void *_push_command(u32 size)
     assert(write + size <= sizeof(active_commands->memory));
     void *command = &active_commands->memory[write];
     active_commands->write += size;
+    active_commands->active_draw = NULL;
     memset(command, 0, size);
     return command;
 }
@@ -59,6 +64,94 @@ void push_draw_model(Model model, V3 position, V3 rotation, V3 scale, Material *
     draw->group = group ? group : active_commands->group;
     draw->transform = transform;
     draw->material = material;
+}
+
+void push_quad(V3 p0, V3 p1, V3 p2, V3 p3, V3 n, V3 color)
+{
+    DrawPrimitiveCommand *draw;
+
+    if (active_commands->active_draw) 
+    {
+        draw = active_commands->active_draw;
+    }
+    else
+    {
+        draw = push_command(DrawPrimitiveCommand);
+        draw->type = Command_DrawPrimitive;
+        draw->group = active_commands->group;
+        draw->vertex_offset = active_commands->vertex_count;
+        active_commands->active_draw = draw;
+    }
+
+    assert(active_commands->vertex_count + 4 < 1024);
+
+    Vertex *vert = &active_commands->vertex_buffer[active_commands->vertex_count];
+    vert->position = p0;
+    vert->normal = n;
+    vert->color = color;
+    vert->uv = v2(0, 0);
+    vert++;
+
+    vert->position = p1;
+    vert->normal = n;
+    vert->color = color;
+    vert->uv = v2(0, 0);
+    vert++;
+
+    vert->position = p2;
+    vert->normal = n;
+    vert->color = color;
+    vert->uv = v2(0, 0);
+    vert++;
+
+    vert->position = p3;
+    vert->normal = n;
+    vert->color = color;
+    vert->uv = v2(0, 0);
+
+    active_commands->vertex_count += 4;
+    draw->quad_count++;
+}
+
+void push_cube(V3 pos, V3 scale, V3 color)
+{
+    // Up
+    push_quad(v3(pos.x - scale.x, pos.y + scale.y, pos.z + scale.z), 
+              v3(pos.x + scale.x, pos.y + scale.y, pos.z + scale.z), 
+              v3(pos.x - scale.x, pos.y + scale.y, pos.z - scale.z), 
+              v3(pos.x + scale.x, pos.y + scale.y, pos.z - scale.z), 
+              v3(0, 1, 0), color);
+
+    // Down
+    push_quad(v3(pos.x - scale.x, pos.y - scale.y, pos.z + scale.z), 
+              v3(pos.x - scale.x, pos.y - scale.y, pos.z - scale.z), 
+              v3(pos.x + scale.x, pos.y - scale.y, pos.z + scale.z), 
+              v3(pos.x + scale.x, pos.y - scale.y, pos.z - scale.z), 
+              v3(0, -1, 0), color);
+
+    push_quad(v3(pos.x + scale.x, pos.y - scale.y, pos.z + scale.z), 
+              v3(pos.x + scale.x, pos.y - scale.y, pos.z - scale.z), 
+              v3(pos.x + scale.x, pos.y + scale.y, pos.z + scale.z), 
+              v3(pos.x + scale.x, pos.y + scale.y, pos.z - scale.z), 
+              v3(1, 0, 0), color);
+
+    push_quad(v3(pos.x - scale.x, pos.y - scale.y, pos.z + scale.z), 
+              v3(pos.x - scale.x, pos.y + scale.y, pos.z + scale.z), 
+              v3(pos.x - scale.x, pos.y - scale.y, pos.z - scale.z), 
+              v3(pos.x - scale.x, pos.y + scale.y, pos.z - scale.z), 
+              v3(-1, 0, 0), color);
+
+    push_quad(v3(pos.x - scale.x, pos.y - scale.y, pos.z + scale.z), 
+              v3(pos.x + scale.x, pos.y - scale.y, pos.z + scale.z), 
+              v3(pos.x - scale.x, pos.y + scale.y, pos.z + scale.z), 
+              v3(pos.x + scale.x, pos.y + scale.y, pos.z + scale.z), 
+              v3(0, 0, 1), color);
+
+    push_quad(v3(pos.x - scale.x, pos.y - scale.y, pos.z - scale.z), 
+              v3(pos.x - scale.x, pos.y + scale.y, pos.z - scale.z), 
+              v3(pos.x + scale.x, pos.y - scale.y, pos.z - scale.z), 
+              v3(pos.x + scale.x, pos.y + scale.y, pos.z - scale.z), 
+              v3(0, 0, -1), color);
 }
 
 void push_blit(Framebuffer *dest, Framebuffer *source)
